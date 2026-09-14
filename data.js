@@ -1,4 +1,5 @@
-window.CREMA_DAILY={
+window.CREMA_ARCHIVE=[{
+  id:"2026-09-14",
   updated:"2026. 09. 14 08:00",
   headline:"추석 프로모션이 본격화되고, 출판 IP를 둘러싼 구조 변화가 빨라지고 있습니다.",
   actions:[
@@ -22,4 +23,4 @@ window.CREMA_DAILY={
       {level:"WATCH",date:"9월",sourceType:"전자책",title:"리디, 할인에 리뷰 포인트를 상시 결합",summary:"장기대여·신간·작가전 대부분에 리뷰 보상을 붙여 구매와 UGC 생성을 동시에 유도합니다.",analysis:"같은 예산이면 단순 담기보다 다음 달에도 남는 리뷰를 확보하는 편이 자산성이 높습니다. 사락 한 문장 리뷰를 먼슬리 다음 호에 재활용할 수 있습니다.",tags:["리뷰","UGC","포인트","사락"],links:[{label:"진행 이벤트",url:"https://ridibooks.com/event/general"}]}
     ]}
   }
-};
+}];
