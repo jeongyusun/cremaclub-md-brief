@@ -25,7 +25,10 @@ function renderHome(){
   document.querySelector("[data-date-title]").textContent=formatDate(DATA.id);
   document.querySelector("[data-headline]").textContent=DATA.headline;
   document.querySelector("[data-hubs]").innerHTML=Object.entries(DATA.categories).map(([key,c],i)=>`<a class="hub-card" href="${dated(`${key}.html`)}"><span class="hub-no">0${i+1}</span><h2>${c.title}</h2><p>${c.description}</p><div class="hub-count"><div><strong>${c.items.length}</strong><span>개의 새 신호</span></div><span class="arrow">↗</span></div></a>`).join("");
-  document.querySelector("[data-actions]").innerHTML=DATA.actions.map((a,i)=>`<li><b>0${i+1}</b><span>${a}</span></li>`).join("");
+  document.querySelector("[data-actions]").innerHTML=DATA.actions.map((a,i)=>{
+    if(typeof a==="string")return `<li class="action-card legacy"><span class="action-no">0${i+1}</span><p>${a}</p></li>`;
+    return `<li class="action-card"><div class="action-top"><span class="action-no">0${i+1}</span><span class="action-type">${a.type}</span>${a.status?`<span class="action-status">${a.status}</span>`:""}</div><h3>${a.title}</h3><p class="action-summary">${a.summary}</p>${a.details?.length?`<ul class="action-details">${a.details.map(d=>`<li>${d}</li>`).join("")}</ul>`:""}</li>`;
+  }).join("");
   const top=Object.values(DATA.categories).flatMap(c=>c.items).find(x=>x.level==="BURST");
   document.querySelector("[data-insight]").textContent=top?.analysis||DATA.headline;
 }
