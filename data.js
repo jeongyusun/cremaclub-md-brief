@@ -251,7 +251,7 @@ window.CREMA_ARCHIVE=[
               },
               {
                 "label": "『포핸즈 대본집 세트』",
-                "url": "https://www.yes24.com/product/goods/195360761"
+                "url": "https://www.yes24.com/product/goods/196782406"
               }
             ]
           }
