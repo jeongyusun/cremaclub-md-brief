@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ebe7de">
+<title>READ CARD</title>
+<meta name="description" content="YES24 도서 정보를 불러와 9:16 북카드를 만드는 웹앱">
+<style>
+:root{
+  --bg:#ebe7de;
+  --paper:#f7f4ec;
+  --ink:#141414;
+  --muted:#726d64;
+  --line:#d6d0c5;
+  --panel:rgba(255,255,255,.72);
+  --shadow:0 30px 80px rgba(43,36,27,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",Segoe UI,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:minmax(330px,420px) minmax(420px,1fr);
+  gap:24px;
+  max-width:1220px;
+  margin:0 auto;
+  padding:26px;
+}
+.control,.preview{
+  border:1px solid rgba(20,20,20,.07);
+  border-radius:26px;
+  background:var(--panel);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.control{padding:26px;display:flex;flex-direction:column}
+.brandline{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:26px}
+.kicker{margin:0 0 7px;font-size:10px;font-weight:800;letter-spacing:.18em;color:#8a8479}
+.brandline h1{margin:0;font:500 38px/1 Georgia,"Times New Roman",serif;letter-spacing:-.04em}
+.ratio{font-size:11px;font-weight:800;border:1px solid var(--line);border-radius:999px;padding:8px 11px;background:#f9f7f2}
+.searchbox{background:#f6f2e9;border:1px solid #ded8cc;border-radius:18px;padding:16px;margin-bottom:22px}
+.label{display:block;font-size:11px;font-weight:800;color:#575249;margin-bottom:8px}
+.searchrow{display:grid;grid-template-columns:1fr auto;gap:8px}
+input{height:44px;border:1px solid #d7d0c4;border-radius:11px;background:white;padding:0 12px;outline:none;color:#161616}
+input:focus{border-color:#222;box-shadow:0 0 0 3px rgba(0,0,0,.045)}
+button{height:44px;border:0;border-radius:11px;font-weight:800}
+.primary{background:#171717;color:white;padding:0 16px}
+.secondary{background:#eee9df;color:#1f1d1a;border:1px solid #d7d1c6}
+.status{margin:10px 0 0;color:#7a746a;font-size:11px;line-height:1.5}
+.status.success{color:#2d6b48}
+.status.error{color:#a44838}
+.fields{display:grid;gap:13px}
+.field{display:grid;gap:7px}
+.field span{font-size:11px;font-weight:800;color:#5d574f}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}
+.note{margin-top:auto;padding-top:22px;color:#888177;font-size:10px;line-height:1.7}
+.preview{
+  display:grid;
+  place-items:center;
+  padding:34px;
+  min-height:820px;
+  background:
+    radial-gradient(circle at 20% 10%,rgba(255,255,255,.85),transparent 30%),
+    linear-gradient(140deg,#dfdbd1 0%,#eeeae2 55%,#e3dfd6 100%);
+}
+.stage{width:min(100%,430px)}
+.card{
+  width:100%;
+  aspect-ratio:9/16;
+  background:var(--paper);
+  border:1px solid rgba(18,18,18,.12);
+  border-radius:30px;
+  padding:25px 24px 21px;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto auto;
+  gap:17px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 28px 60px rgba(34,28,21,.18);
+}
+.card:after{
+  content:"";
+  position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(120deg,rgba(255,255,255,.25),transparent 28%);
+}
+.cardtop,.coverwrap,.meta,.footer{position:relative;z-index:1}
+.cardtop{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.cardtitle{
+  margin:0;
+  max-width:82%;
+  font-size:14px;
+  line-height:1.45;
+  letter-spacing:-.025em;
+  font-weight:800;
+  word-break:keep-all;
+}
+.readmark{
+  flex:0 0 auto;
+  font:700 9px/1 Georgia,"Times New Roman",serif;
+  letter-spacing:.16em;
+  padding-top:3px;
+}
+.coverwrap{
+  width:88%;
+  justify-self:center;
+  align-self:center;
+  aspect-ratio:0.685;
+  display:grid;
+  place-items:center;
+}
+.coverwrap img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  border-radius:3px;
+  box-shadow:0 18px 36px rgba(31,24,17,.22);
+  background:#ded8cd;
+}
+.meta{padding-top:1px}
+.by{margin:0 0 4px;font:italic 10px/1.2 Georgia,"Times New Roman",serif;color:#827b71}
+.author{
+  margin:0;
+  font:500 34px/1.02 Georgia,"Noto Serif KR","Times New Roman",serif;
+  letter-spacing:-.045em;
+  word-break:keep-all;
+}
+.publisher{margin:9px 0 0;font-size:11px;font-weight:650;color:#6d675e;letter-spacing:-.02em}
+.footer{
+  padding-top:12px;
+  border-top:1px solid rgba(20,20,20,.18);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  color:#625c54;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.15em;
+}
+.mobile-title{display:none}
+@media(max-width:880px){
+  .app{grid-template-columns:1fr;max-width:650px;padding:14px}
+  .preview{order:-1;min-height:auto;padding:22px 16px}
+  .control{padding:22px}
+  .stage{width:min(100%,390px)}
+  .mobile-title{display:block;text-align:center;font-size:10px;font-weight:800;letter-spacing:.15em;color:#776f66;margin:0 0 12px}
+}
+@media(max-width:480px){
+  .app{padding:0;gap:0}
+  .preview,.control{border-radius:0;border-left:0;border-right:0;box-shadow:none}
+  .preview{padding:16px 12px 24px}
+  .control{padding:20px 18px 26px}
+  .stage{width:min(100%,372px)}
+  .card{border-radius:24px;padding:23px 21px 19px;gap:15px}
+  .author{font-size:30px}
+  .brandline h1{font-size:33px}
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <section class="control">
+    <div class="brandline">
+      <div>
+        <p class="kicker">BOOK CARD MAKER</p>
+        <h1>READ CARD</h1>
+      </div>
+      <span class="ratio">9:16</span>
+    </div>
+
+    <div class="searchbox">
+      <label class="label" for="query">책 제목 또는 YES24 상품 URL</label>
+      <div class="searchrow">
+        <input id="query" placeholder="책 제목을 입력하세요">
+        <button id="search" class="primary">불러오기</button>
+      </div>
+      <p id="status" class="status">YES24에서 제목·저자·출판사·표지를 찾아옵니다.</p>
+    </div>
+
+    <div class="fields">
+      <label class="field"><span>책 제목</span><input id="title" value="혼모노"></label>
+      <label class="field"><span>저자명</span><input id="author" value="성해나"></label>
+      <label class="field"><span>출판사명</span><input id="publisher" value="창비"></label>
+      <label class="field"><span>표지 이미지 URL</span><input id="cover" value="https://image.yes24.com/goods/147562506/XL"></label>
+    </div>
+
+    <div class="actions">
+      <button id="reset" class="secondary">초기화</button>
+      <button id="openYes24" class="secondary">YES24 열기</button>
+    </div>
+
+    <p class="note">자동 조회가 막혀도 아래 입력값을 직접 수정하면 카드에는 즉시 반영돼요. 저자명은 YES24의 “저” 이전까지만 정리합니다.</p>
+  </section>
+
+  <section class="preview">
+    <div>
+      <p class="mobile-title">PREVIEW · 9:16</p>
+      <div class="stage">
+        <article class="card" id="card">
+          <div class="cardtop">
+            <p class="cardtitle" id="cardTitle">혼모노</p>
+            <span class="readmark">READ</span>
+          </div>
+          <div class="coverwrap">
+            <img id="cardCover" src="https://image.yes24.com/goods/147562506/XL" alt="책 표지">
+          </div>
+          <div class="meta">
+            <p class="by">written by</p>
+            <h2 class="author" id="cardAuthor">성해나</h2>
+            <p class="publisher" id="cardPublisher">창비</p>
+          </div>
+          <div class="footer">
+            <span>READ CARD</span>
+            <span id="date"></span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const els={query:$('query'),search:$('search'),status:$('status'),title:$('title'),author:$('author'),publisher:$('publisher'),cover:$('cover'),cardTitle:$('cardTitle'),cardAuthor:$('cardAuthor'),cardPublisher:$('cardPublisher'),cardCover:$('cardCover'),date:$('date'),reset:$('reset'),openYes24:$('openYes24')};
+let currentGoodsNo='147562506';
+const defaults={title:'혼모노',author:'성해나',publisher:'창비',cover:'https://image.yes24.com/goods/147562506/XL',goodsNo:'147562506'};
+const d=new Date(), pad=n=>String(n).padStart(2,'0');
+els.date.textContent=d.getFullYear()+'.'+pad(d.getMonth()+1)+'.'+pad(d.getDate());
+
+function status(msg,type){
+  els.status.textContent=msg;
+  els.status.className='status'+(type?' '+type:'');
+}
+function sync(){
+  els.cardTitle.textContent=els.title.value.trim()||'책 제목';
+  els.cardAuthor.textContent=els.author.value.trim()||'저자명';
+  els.cardPublisher.textContent=els.publisher.value.trim()||'출판사명';
+  const src=els.cover.value.trim();
+  if(src && els.cardCover.getAttribute('src')!==src) els.cardCover.src=src;
+}
+['title','author','publisher','cover'].forEach(id=>$(id).addEventListener('input',sync));
+
+function cleanText(s){
+  const t=document.createElement('textarea');
+  t.innerHTML=s||'';
+  return (t.value||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+}
+function cleanAuthor(s){
+  let t=cleanText(s).replace(/^저자\s*[:：]?\s*/,'').trim();
+  const m=t.match(/^(.*?)(?:\s+저(?:\s|\||\/|,|·|$))/);
+  if(m&&m[1]) t=m[1];
+  return t.replace(/[|/,]+$/,'').trim();
+}
+function normalize(s){return (s||'').toLowerCase().replace(/[\s\-_:·.,'"“”‘’!?()\[\]{}]/g,'')}
+function goodsNoFrom(v){
+  v=(v||'').trim();
+  const m=v.match(/(?:goods\/|Goods\/)(\d{5,})/);
+  if(m)return m[1];
+  if(/^\d{5,}$/.test(v))return v;
+  return '';
+}
+const proxies=[
+  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+  u=>'https://corsproxy.io/?url='+encodeURIComponent(u)
+];
+async function getText(url){
+  let err;
+  for(const p of proxies){
+    try{
+      const r=await fetch(p(url),{cache:'no-store'});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const t=await r.text();
+      if(t&&t.length>400)return t;
+    }catch(e){err=e}
+  }
+  throw err||new Error('fetch failed');
+}
+function parseProduct(html,goodsNo){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const first=(...sels)=>{
+    for(const s of sels){
+      const el=doc.querySelector(s);
+      const val=el&&(el.getAttribute('content')||el.textContent);
+      if(cleanText(val))return cleanText(val);
+    }
+    return '';
+  };
+  let title=first('h2.gd_name','h1.gd_name','meta[property="og:title"]','title');
+  if(title.includes(' | '))title=title.split(' | ')[0].trim();
+  title=title.replace(/\s*-\s*예스24\s*$/,'').trim();
+  let author=first('.gd_auth','.gd_auth a','meta[name="author"]');
+  let publisher=first('.gd_pub','.gd_pub a');
+  author=cleanAuthor(author);
+  publisher=cleanText(publisher).replace(/^출판사\s*[:：]?\s*/,'').trim();
+  return {goodsNo:goodsNo,title:title,author:author,publisher:publisher,cover:'https://image.yes24.com/goods/'+goodsNo+'/XL'};
+}
+async function lookup(goodsNo){
+  const html=await getText('https://www.yes24.com/product/goods/'+goodsNo);
+  return parseProduct(html,goodsNo);
+}
+async function searchGoods(query){
+  const html=await getText('https://www.yes24.com/Product/Search?domain=ALL&query='+encodeURIComponent(query));
+  const ids=[...html.matchAll(/(?:Product|product)\/(?:Goods|goods)\/(\d{5,})/g)].map(m=>m[1]);
+  const unique=[...new Set(ids)].slice(0,5);
+  if(!unique.length)throw new Error('no result');
+  for(const id of unique.slice(0,3)){
+    try{
+      const data=await lookup(id);
+      if(normalize(data.title)===normalize(query)||normalize(data.title).includes(normalize(query)))return id;
+    }catch(e){}
+  }
+  return unique[0];
+}
+function apply(data){
+  if(data.title)els.title.value=data.title;
+  if(data.author)els.author.value=data.author;
+  if(data.publisher)els.publisher.value=data.publisher;
+  if(data.cover)els.cover.value=data.cover;
+  if(data.goodsNo)currentGoodsNo=data.goodsNo;
+  sync();
+}
+async function runSearch(){
+  const q=els.query.value.trim();
+  if(!q){status('책 제목이나 YES24 상품 URL을 입력해 주세요.','error');return}
+  els.search.disabled=true;
+  els.search.textContent='찾는 중';
+  status('YES24에서 도서 정보를 찾고 있어요.');
+  try{
+    let no=goodsNoFrom(q);
+    if(!no)no=await searchGoods(q);
+    const data=await lookup(no);
+    apply(data);
+    status('불러왔어요 · 상품번호 '+no,'success');
+  }catch(e){
+    console.error(e);
+    status('자동 조회에 실패했어요. 아래 항목을 직접 입력하면 카드에는 바로 반영됩니다.','error');
+  }finally{
+    els.search.disabled=false;
+    els.search.textContent='불러오기';
+  }
+}
+els.search.addEventListener('click',runSearch);
+els.query.addEventListener('keydown',e=>{if(e.key==='Enter')runSearch()});
+els.reset.addEventListener('click',()=>{
+  currentGoodsNo=defaults.goodsNo;
+  els.query.value='';
+  els.title.value=defaults.title;
+  els.author.value=defaults.author;
+  els.publisher.value=defaults.publisher;
+  els.cover.value=defaults.cover;
+  sync();
+  status('초기화했어요.');
+});
+els.openYes24.addEventListener('click',()=>{
+  const q=els.query.value.trim();
+  const no=goodsNoFrom(q)||currentGoodsNo;
+  const url=no?'https://www.yes24.com/product/goods/'+no:'https://www.yes24.com/Product/Search?domain=ALL&query='+encodeURIComponent(els.title.value.trim());
+  window.open(url,'_blank','noopener,noreferrer');
+});
+els.cardCover.addEventListener('error',()=>status('표지 이미지를 불러오지 못했어요. URL을 확인해 주세요.','error'));
+sync();
+</script>
+</body>
+</html>
