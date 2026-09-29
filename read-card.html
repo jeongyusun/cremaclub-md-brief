@@ -125,6 +125,15 @@ button:disabled{opacity:.52;cursor:wait}
 .card-foot{display:flex;justify-content:space-between;align-items:end;gap:12px;font:500 8px/1 "IBM Plex Mono",monospace}
 .collection{display:grid;gap:6px}.mini-line{width:144px;height:1px;background:#23201c}.signature{border:1.4px solid #111;border-radius:50%;padding:8px 13px 7px;font:600 10px/1 "IBM Plex Mono",monospace;transform:rotate(-3deg)}
 .preview-note{margin:13px 0 0;text-align:center;color:#80796f;font-size:10px}
+.save-modal[hidden]{display:none}
+.save-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:18px}
+.save-modal-card{width:min(100%,430px);max-height:92vh;overflow:auto;background:#fff;border-radius:18px;padding:14px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.save-modal-card h3{margin:2px 2px 8px;font-size:16px}
+.save-modal-card p{margin:0 2px 12px;color:#68625a;font-size:12px;line-height:1.55}
+.save-modal-card img{display:block;width:100%;height:auto;background:#fff;border:1px solid #ddd}
+.save-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.save-modal-actions button{height:44px}
+.save-modal-actions .modal-open{background:#161616;color:#fff}
 @media(max-width:900px){
   .app{grid-template-columns:1fr;max-width:620px;padding:14px}
   .preview{order:-1;min-height:auto;padding:20px}
@@ -236,13 +245,26 @@ button:disabled{opacity:.52;cursor:wait}
   </section>
 </main>
 
+<div class="save-modal" id="saveModal" hidden>
+  <div class="save-modal-card">
+    <h3>이미지 저장</h3>
+    <p>공유창이 뜨지 않는 브라우저에서는 아래 이미지를 길게 눌러 <b>사진에 저장</b>을 선택해 주세요.</p>
+    <img id="savePreview" alt="저장할 독서카드 이미지">
+    <div class="save-modal-actions">
+      <button id="closeSaveModal" class="secondary">닫기</button>
+      <button id="openSavedImage" class="modal-open">새 탭에서 열기</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const $=id=>document.getElementById(id);
 const els={
   title:$('title'),author:$('author'),publisher:$('publisher'),quote:$('quote'),quoteCount:$('quoteCount'),
   findCover:$('findCover'),coverFile:$('coverFile'),status:$('status'),reset:$('reset'),archive:$('archive'),download:$('download'),
   cardNo:$('cardNo'),cardDate:$('cardDate'),cardTitle:$('cardTitle'),cardAuthor:$('cardAuthor'),cardPublisher:$('cardPublisher'),cardQuote:$('cardQuote'),
-  coverImage:$('coverImage'),coverPlaceholder:$('coverPlaceholder'),savedList:$('savedList'),savedCount:$('savedCount'),bookCard:$('bookCard')
+  coverImage:$('coverImage'),coverPlaceholder:$('coverPlaceholder'),savedList:$('savedList'),savedCount:$('savedCount'),bookCard:$('bookCard'),
+  saveModal:$('saveModal'),savePreview:$('savePreview'),closeSaveModal:$('closeSaveModal'),openSavedImage:$('openSavedImage')
 };
 const STORAGE_KEY='yusun-book-cards-v2';
 const DRAFT_KEY='yusun-book-card-draft-v2';
@@ -250,6 +272,10 @@ const DEFAULTS={title:'혼모노',author:'성해나',publisher:'창비',quote:'�
 let coverSource=DEFAULTS.cover;
 let coverData='';
 let saved=loadSaved();
+let exportBlob=null;
+let exportVersion=0;
+let exportTimer=null;
+let savePreviewUrl='';
 
 const pad=n=>String(n).padStart(2,'0');
 const now=new Date();
@@ -279,6 +305,7 @@ function sync(){
   els.cardNo.textContent=String(saved.length+1).padStart(3,'0');
   setTitleSize();
   saveDraft();
+  markExportDirty();
 }
 ['title','author','publisher','quote'].forEach(id=>{
   $(id).addEventListener('input',sync);
@@ -367,7 +394,7 @@ async function findCover(){
     const id=await searchGoodsNo(q);const url='https://image.yes24.com/goods/'+id+'/XL';
     coverSource=url;
     try{coverData=await imageToDataURL(url);setCoverSrc(coverData)}catch(e){coverData='';setCoverSrc(url)}
-    saveDraft();setStatus('표지를 찾았어요 · 상품번호 '+id,'success');
+    saveDraft();markExportDirty();setStatus('표지를 찾았어요 · 상품번호 '+id,'success');
   }catch(e){console.error(e);setStatus('자동 검색에 실패했어요. 표지를 직접 올려주세요.','error')}
   finally{els.findCover.disabled=false;els.findCover.textContent='표지 자동 찾기'}
 }
@@ -375,7 +402,7 @@ els.findCover.addEventListener('click',findCover);
 
 els.coverFile.addEventListener('change',e=>{
   const file=e.target.files?.[0];if(!file)return;
-  const fr=new FileReader();fr.onload=()=>{coverData=fr.result;coverSource='uploaded';setCoverSrc(coverData);saveDraft();setStatus('표지를 적용했어요.','success')};fr.readAsDataURL(file);
+  const fr=new FileReader();fr.onload=()=>{coverData=fr.result;coverSource='uploaded';setCoverSrc(coverData);saveDraft();markExportDirty();setStatus('표지를 적용했어요.','success')};fr.readAsDataURL(file);
 });
 
 els.archive.addEventListener('click',()=>{
@@ -388,26 +415,108 @@ els.reset.addEventListener('click',()=>{
   els.title.value=DEFAULTS.title;els.author.value=DEFAULTS.author;els.publisher.value=DEFAULTS.publisher;els.quote.value=DEFAULTS.quote;coverSource=DEFAULTS.cover;coverData='';setCoverSrc(DEFAULTS.cover);sync();setStatus('기본 예시로 초기화했어요.');
 });
 
+function markExportDirty(){
+  exportVersion+=1;
+  exportBlob=null;
+  clearTimeout(exportTimer);
+  exportTimer=setTimeout(()=>warmExport(),900);
+}
 async function ensureExportCover(){
   if(coverData)return;
   if(coverSource && coverSource.startsWith('http')){
     try{coverData=await imageToDataURL(coverSource);setCoverSrc(coverData);saveDraft()}catch(e){console.warn('cover export fallback',e)}
   }
 }
-async function downloadCard(){
-  if(typeof html2canvas!=='function'){setStatus('이미지 저장 모듈을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.','error');return}
-  els.download.disabled=true;els.download.textContent='이미지 만드는 중…';setStatus('1080 × 1920 이미지로 렌더링하고 있어요.');
+function canvasToBlob(canvas){
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PNG 변환 실패')),'image/png',1);
+  });
+}
+async function renderCardBlob(){
+  if(typeof html2canvas!=='function')throw new Error('이미지 저장 모듈을 불러오지 못했습니다.');
+  await ensureExportCover();
+  if(document.fonts?.ready)await document.fonts.ready;
+  const scale=1080/els.bookCard.getBoundingClientRect().width;
+  const canvas=await html2canvas(els.bookCard,{scale,backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,imageTimeout:12000});
+  const out=document.createElement('canvas');
+  out.width=1080;out.height=1920;
+  const ctx=out.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,1080,1920);
+  ctx.drawImage(canvas,0,0,1080,1920);
+  return canvasToBlob(out);
+}
+async function warmExport(){
+  if(typeof html2canvas!=='function')return;
+  const version=exportVersion;
   try{
-    await ensureExportCover();if(document.fonts?.ready)await document.fonts.ready;
-    const scale=1080/els.bookCard.getBoundingClientRect().width;
-    const canvas=await html2canvas(els.bookCard,{scale,backgroundColor:null,useCORS:true,allowTaint:false,logging:false,imageTimeout:12000});
-    const out=document.createElement('canvas');out.width=1080;out.height=1920;const ctx=out.getContext('2d');ctx.drawImage(canvas,0,0,1080,1920);
-    const a=document.createElement('a');const safe=(escText(els.title.value)||'book-card').replace(/[\/:*?"<>|]/g,'_');a.download=safe+'_bookcard.png';a.href=out.toDataURL('image/png',1);a.click();
-    setStatus('이미지를 저장했어요.','success');
-  }catch(e){console.error(e);setStatus('이미지 저장에 실패했어요. 표지를 직접 올린 뒤 다시 시도해 주세요.','error')}
-  finally{els.download.disabled=false;els.download.textContent='PNG 이미지로 저장'}
+    const blob=await renderCardBlob();
+    if(version===exportVersion)exportBlob=blob;
+  }catch(e){}
+}
+function fileName(){
+  const safe=(escText(els.title.value)||'book-card').replace(/[\\/:*?"<>|]/g,'_');
+  return safe+'_bookcard.png';
+}
+function downloadBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+function showSavePreview(blob){
+  if(savePreviewUrl)URL.revokeObjectURL(savePreviewUrl);
+  savePreviewUrl=URL.createObjectURL(blob);
+  els.savePreview.src=savePreviewUrl;
+  els.saveModal.hidden=false;
+}
+function closeSavePreview(){
+  els.saveModal.hidden=true;
+  if(savePreviewUrl){URL.revokeObjectURL(savePreviewUrl);savePreviewUrl='';els.savePreview.removeAttribute('src')}
+}
+els.closeSaveModal.addEventListener('click',closeSavePreview);
+els.saveModal.addEventListener('click',e=>{if(e.target===els.saveModal)closeSavePreview()});
+els.openSavedImage.addEventListener('click',()=>{if(savePreviewUrl)window.open(savePreviewUrl,'_blank')});
+async function downloadCard(){
+  els.download.disabled=true;
+  els.download.textContent='이미지 만드는 중…';
+  setStatus('1080 × 1920 이미지로 준비하고 있어요.');
+  try{
+    let blob=exportBlob;
+    if(!blob)blob=await renderCardBlob();
+    exportBlob=blob;
+    const name=fileName();
+    const file=new File([blob],name,{type:'image/png'});
+    const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||window.matchMedia('(pointer:coarse)').matches;
+
+    if(mobile && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({files:[file],title:'독서카드'});
+        setStatus('공유창을 열었어요. 아이폰에서는 “이미지 저장”을 선택하면 사진 앱에 저장됩니다.','success');
+        return;
+      }catch(e){
+        if(e?.name==='AbortError'){setStatus('저장을 취소했어요.');return}
+        console.warn('native share failed',e);
+      }
+    }
+
+    if(mobile){
+      showSavePreview(blob);
+      setStatus('이미지를 열었어요. 이미지를 길게 눌러 사진에 저장해 주세요.','success');
+    }else{
+      downloadBlob(blob,name);
+      setStatus('PNG 이미지를 저장했어요.','success');
+    }
+  }catch(e){
+    console.error(e);
+    setStatus('이미지 저장에 실패했어요. 표지를 직접 올린 뒤 다시 시도해 주세요.','error');
+  }finally{
+    els.download.disabled=false;
+    els.download.textContent='PNG 이미지로 저장';
+  }
 }
 els.download.addEventListener('click',downloadCard);
+window.addEventListener('load',()=>setTimeout(warmExport,500));
 
 restoreDraft();renderSaved();sync();
 </script>
