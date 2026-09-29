@@ -14,8 +14,8 @@
 :root{
   color-scheme:light;
   --ink:#111;
-  --paper:#f2efe8;
-  --paper2:#eae6dd;
+  --paper:#ffffff;
+  --paper2:#ffffff;
   --blue:#173a98;
   --muted:#716c63;
   --line:#c8c1b7;
@@ -23,7 +23,7 @@
   --shadow:0 26px 80px rgba(31,26,20,.14);
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#e8e5dd;color:var(--ink)}
+html,body{margin:0;min-height:100%;background:#fff;color:var(--ink)}
 body{font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
@@ -78,14 +78,11 @@ button:disabled{opacity:.52;cursor:wait}
 .saved-card b{display:block;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
 .saved-card small{font:500 8px/1.2 "IBM Plex Mono",monospace;color:#8c857a}
 .empty{font-size:10px;color:#999188;padding:8px 0}
-.preview{display:grid;place-items:center;min-height:850px;padding:34px;background:radial-gradient(circle at 22% 12%,rgba(255,255,255,.92),transparent 34%),linear-gradient(145deg,#d9d5cc,#efede6 54%,#dfdbd2)}
+.preview{display:grid;place-items:center;min-height:850px;padding:34px;background:#fff}
 .stage{width:min(100%,430px)}
 .book-card{
   width:100%;aspect-ratio:9/16;position:relative;overflow:hidden;
-  background:
-    radial-gradient(circle at 16% 11%,rgba(255,255,255,.7),transparent 26%),
-    linear-gradient(100deg,rgba(45,36,27,.025),transparent 30%,rgba(70,55,37,.025) 68%,transparent),
-    var(--paper);
+  background:#fff;
   border:1px solid rgba(30,26,22,.16);
   box-shadow:0 26px 65px rgba(38,31,24,.22);
   padding:27px 25px 23px;
@@ -94,14 +91,8 @@ button:disabled{opacity:.52;cursor:wait}
   gap:12px;
   color:#111;
 }
-.book-card:before{
-  content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;mix-blend-mode:multiply;
-  background-image:
-    repeating-radial-gradient(circle at 10% 20%,rgba(0,0,0,.035) 0 1px,transparent 1px 4px),
-    repeating-linear-gradient(102deg,rgba(255,255,255,.12) 0 1px,transparent 1px 7px);
-  background-size:17px 19px,31px 29px;
-}
-.book-card:after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 45px rgba(68,54,35,.055);pointer-events:none}
+.book-card:before{content:"";position:absolute;inset:0;pointer-events:none;background:#fff;z-index:0}
+.book-card:after{content:"";position:absolute;inset:0;pointer-events:none}
 .card-head,.title-zone,.visual-zone,.meta-row,.quote-zone,.card-foot{position:relative;z-index:2}
 .card-head{display:flex;justify-content:space-between;align-items:flex-start;padding:0 2px 10px;border-bottom:1.25px solid #23201c;font:500 9px/1.25 "IBM Plex Mono",monospace;letter-spacing:.025em}
 .serial{display:grid;gap:3px}.date{padding-top:8px;white-space:nowrap}
@@ -129,7 +120,7 @@ button:disabled{opacity:.52;cursor:wait}
 .meta-value{display:block;font-size:16px;font-weight:900;letter-spacing:-.055em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .quote-zone{min-height:112px;padding:8px 3px 4px;border-bottom:1px solid #bbb4a9;background-image:repeating-linear-gradient(to bottom,transparent 0 28px,rgba(110,104,95,.35) 28px 29px);background-position:0 12px}
 .note-label{font:500 8px/1 "IBM Plex Mono",monospace;margin-bottom:2px}
-.quote{margin:0 10px 0 18px;font:400 19px/1.35 "Nanum Pen Script","Noto Sans KR",sans-serif;color:var(--blue);transform:rotate(-.7deg);word-break:keep-all;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.quote{margin:0 10px 0 18px;font:400 19px/1.35 "Nanum Pen Script","Noto Sans KR",sans-serif;color:var(--blue);transform:rotate(-.7deg);word-break:keep-all;white-space:pre-wrap;overflow-wrap:anywhere;overflow:hidden}
 .quote-mark{position:absolute;right:5px;bottom:10px;width:24px;height:24px;transform:rotate(17deg)}
 .card-foot{display:flex;justify-content:space-between;align-items:end;gap:12px;font:500 8px/1 "IBM Plex Mono",monospace}
 .collection{display:grid;gap:6px}.mini-line{width:144px;height:1px;background:#23201c}.signature{border:1.4px solid #111;border-radius:50%;padding:8px 13px 7px;font:600 10px/1 "IBM Plex Mono",monospace;transform:rotate(-3deg)}
@@ -142,7 +133,7 @@ button:disabled{opacity:.52;cursor:wait}
 @media(max-width:500px){
   .app{padding:0;gap:0;display:flex;flex-direction:column}
   .panel{border-radius:0;border-left:0;border-right:0;box-shadow:none}
-  .preview{padding:12px 10px 22px;background:#e7e3da}
+  .preview{padding:12px 10px 22px;background:#fff}
   .editor{padding:22px 18px 30px}
   .stage{width:min(100%,390px)}
   .book-card{padding:24px 22px 21px;gap:10px}
@@ -268,24 +259,31 @@ function setStatus(msg,type=''){
   els.status.textContent=msg;
   els.status.className='status'+(type?' '+type:'');
 }
-function escText(s=''){return s.replace(/s+/g,' ').trim()}
+function escText(s=''){return s.replace(/\s+/g,' ').trim()}
 function setTitleSize(){
   const n=[...els.cardTitle.textContent].length;
   els.cardTitle.style.fontSize=n>24?'27px':n>17?'31px':n>11?'35px':'39px';
 }
 function sync(){
   const title=escText(els.title.value)||'도서명';
+  const author=escText(els.author.value)||'저자명';
+  const publisher=escText(els.publisher.value)||'출판사명';
+  const quote=els.quote.value.trim()||'마음에 남은 문장을 적어보세요.';
+
   els.cardTitle.textContent=title;
-  els.cardAuthor.textContent=escText(els.author.value)||'저자명';
-  els.cardPublisher.textContent=escText(els.publisher.value)||'출판사명';
-  els.cardQuote.textContent=els.quote.value.trim()||'마음에 남은 문장을 적어보세요.';
+  els.cardAuthor.textContent=author;
+  els.cardPublisher.textContent=publisher;
+  els.cardQuote.textContent=quote;
   els.coverPlaceholder.textContent=title;
   els.quoteCount.textContent=[...els.quote.value].length;
   els.cardNo.textContent=String(saved.length+1).padStart(3,'0');
   setTitleSize();
   saveDraft();
 }
-['title','author','publisher','quote'].forEach(id=>$(id).addEventListener('input',sync));
+['title','author','publisher','quote'].forEach(id=>{
+  $(id).addEventListener('input',sync);
+  $(id).addEventListener('change',sync);
+});
 
 function loadSaved(){
   try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch(e){return []}
@@ -327,9 +325,9 @@ els.coverImage.addEventListener('error',()=>{showPlaceholder();setStatus('표지
 
 function cleanText(s=''){
   const t=document.createElement('textarea');t.innerHTML=s;
-  return (t.value||'').replace(/<[^>]*>/g,' ').replace(/s+/g,' ').trim();
+  return (t.value||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 }
-function normalize(s=''){return s.toLowerCase().replace(/[s-_:·.,'"“”‘’!?()[]{}]/g,'')}
+function normalize(s=''){return s.toLowerCase().replace(/[^0-9a-zA-Z가-힣]/g,'')}
 const proxyBuilders=[u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://corsproxy.io/?url='+encodeURIComponent(u)];
 async function fetchText(url){
   let last;
@@ -340,7 +338,8 @@ async function fetchText(url){
 }
 async function searchGoodsNo(query){
   const html=await fetchText('https://www.yes24.com/Product/Search?domain=ALL&query='+encodeURIComponent(query));
-  const ids=[...html.matchAll(/(?:Product|product)/(?:Goods|goods)/(d{5,})/g)].map(m=>m[1]);
+  const productRe=new RegExp('(?:Product|product)/(?:Goods|goods)/([0-9]{5,})','g');
+  const ids=[...html.matchAll(productRe)].map(m=>m[1]);
   const unique=[...new Set(ids)].slice(0,6);if(!unique.length)throw new Error('검색 결과 없음');
   if(unique.length===1)return unique[0];
   for(const id of unique.slice(0,4)){
